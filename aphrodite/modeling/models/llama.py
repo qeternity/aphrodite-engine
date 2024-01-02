@@ -33,7 +33,7 @@ from torch import nn
 from transformers import LlamaConfig
 
 from aphrodite.modeling.metadata import InputMetadata
-from aphrodite.modeling.layers.activation import SiluAndMul
+from aphrodite.modeling.layers.activation import _ACTIVATION_REGISTRY
 from aphrodite.modeling.layers.attention import PagedAttention
 from aphrodite.modeling.layers.layernorm import RMSNorm
 from aphrodite.modeling.layers.linear import (LinearMethodBase,
@@ -50,6 +50,7 @@ from aphrodite.modeling.sampling_metadata import SamplingMetadata
 from aphrodite.modeling.hf_downloader import (default_weight_loader,
                                               hf_model_weights_iterator)
 from aphrodite.common.sequence import SamplerOutput
+from aphrodite.transformers_utils.config import get_config
 
 KVCache = Tuple[torch.Tensor, torch.Tensor]
 
@@ -60,7 +61,9 @@ class LlamaMLP(nn.Module):
         self,
         hidden_size: int,
         intermediate_size: int,
-        hidden_act: str,
+        trust_remote_code: bool,
+        model: str,
+        revision: Optional[str] = None,
         linear_method: Optional[LinearMethodBase] = None,
     ) -> None:
         super().__init__()
@@ -72,10 +75,8 @@ class LlamaMLP(nn.Module):
                                            hidden_size,
                                            bias=False,
                                            linear_method=linear_method)
-        if hidden_act != "silu":
-            raise ValueError(f"Unsupported activation: {hidden_act}. "
-                             "Only silu is supported for now.")
-        self.act_fn = SiluAndMul()
+        self.hf_config = get_config(model, trust_remote_code, revision)
+        self.act_fn = _ACTIVATION_REGISTRY[self.hf_config.act_fn]
 
     def forward(self, x):
         gate_up, _ = self.gate_up_proj(x)

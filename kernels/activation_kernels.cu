@@ -100,6 +100,41 @@ __device__ __forceinline__ T gelu_fast_kernel(const T& x) {
 
 } // namespace aphrodite
 
+namespace aphrodite {
+
+template<typename T>
+__device__ __forceinline__ void rotate_neox(T* x, const int d) {
+  const int half_d = d / 2;
+  for (int idx = threadIdx.x; idx < half_d; idx += blockDim.x) {
+    T temp = x[idx];
+    x[idx] = -x[half_d + idx];
+    x[half_d + idx] = temp;
+  }
+}
+
+template<typename T>
+__device__ __forceinline__ T activated_rotary_unit(const T& x, const int d) {
+  const int half_d = d / 2;
+  T cos = x * cosf(x);
+  T sin = rotate_neox(x + half_d, half_d) * sinf(x + half_d);
+  return cos + sin;
+}
+
+template<typename scalar_t>
+__global__ void activated_rotary_unit_kernel(
+  scalar_t* __restrict__ out,         // [..., d]
+  const scalar_t* __restrict__ input, // [..., d]
+  const int d) {
+  const int64_t token_idx = blockIdx.x;
+  for (int64_t idx = threadIdx.x; idx < d; idx += blockDim.x) {
+    const scalar_t x = APHRODITE_LDG(&input[token_idx * d + idx]);
+    out[token_idx * d + idx] = activated_rotary_unit(x, d);
+  }
+}
+
+} // namespace aphrodite
+
+
 void gelu_new(
   torch::Tensor& out,     // [..., d]
   torch::Tensor& input)   // [..., d]
@@ -112,4 +147,25 @@ void gelu_fast(
   torch::Tensor& input)   // [..., d]
 {
   LAUNCH_ACTIVATION_KERNEL(aphrodite::gelu_fast_kernel);
+}
+
+void activated_rotary_unit(
+  torch::Tensor& out,   // [..., d]
+  torch::Tensor& input) // [..., d]
+{
+  int64_t num_tokens = input.numel() / input.size(-1);
+  int d = input.size(-1);
+
+  dim3 grid(num_tokens);
+  dim3 block(std::min(d, 1024));
+  const cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+  APHRODITE_DISPATCH_FLOATING_TYPES(
+    input.scalar_type(),
+    "activated_rotary_unit_kernel",
+    [&] {
+      aphrodite::activated_rotary_unit_kernel<scalar_t><<<grid, block, 0, stream>>>(
+        out.data_ptr<scalar_t>(),
+        input.data_ptr<scalar_t>(),
+        d);
+    });
 }

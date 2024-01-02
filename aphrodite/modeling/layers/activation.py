@@ -11,6 +11,7 @@ from aphrodite.modeling.megatron.parallel_state import (
     get_tensor_model_parallel_rank, get_tensor_model_parallel_world_size)
 from aphrodite.modeling.megatron.utils import divide
 from aphrodite.modeling.utils import set_weight_attrs
+from aphrodite.modeling.layers.rotary_embedding import _rotate_neox
 
 
 class SiluAndMul(nn.Module):
@@ -107,12 +108,27 @@ class ScaledActivation(nn.Module):
         param_data.copy_(loaded_weight)
 
 
+class ActivatedRotaryUnit(nn.Module):
+    def _forward(self, x: torch.Tensor) -> torch.Tensor:
+        """PyTorch-native implementation. Equivalent to forward()"""
+        x1, x2 = torch.chunk(x, 2, dim=-1)
+        cos = x1 * x1.cos()
+        sin = _rotate_neox(x2) * x2.sin()
+        return torch.cat([cos, sin], dim=-1)
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = torch.empty_like(x)
+        activation_ops.activated_rotary_unit(out, x)
+        return out
+
+
 _ACTIVATION_REGISTRY = {
     "gelu": nn.GELU(),
     "gelu_fast": FastGELU(),
     "gelu_new": NewGELU(),
     "gelu_pytorch_tanh": nn.GELU(approximate="tanh"),
     "relu": nn.ReLU(),
+    "aru": ActivatedRotaryUnit(),
 }
 
 

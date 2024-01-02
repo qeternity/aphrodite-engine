@@ -62,6 +62,10 @@ void gelu_fast(
   torch::Tensor& out,
   torch::Tensor& input);
 
+void activated_rotary_unit(
+  torch::Tensor& out,
+  torch::Tensor& input);
+
 // The AWQ kernels are only available on CUDA
 #ifndef USE_ROCM
 torch::Tensor awq_gemm(

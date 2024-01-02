@@ -30,6 +30,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     "gelu_fast",
     &gelu_fast,
     "Approximate GELU implementation.");
+  ops.def(
+    "activated_rotary_unit",
+    &activated_rotary_unit,
+    "Rotary Activations.");
 
   // Layernorm
   ops.def(
