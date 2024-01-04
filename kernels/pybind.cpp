@@ -30,23 +30,43 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     "gelu_fast",
     &gelu_fast,
     "Approximate GELU implementation.");
+  ops.def(
+    "invoke_dequant_silu_and_mul_quant",
+    py::overload_cast<torch::Tensor &, torch::Tensor &, float, float, float>(
+      &invoke_dequant_silu_and_mul_quant),
+      "Dequant input, apply silu act and quant output");
+  ops.def("invoke_dequant_silu_and_mul_quant",
+        py::overload_cast<torch::Tensor &, torch::Tensor &, float, float,
+                          torch::Tensor &, torch::Tensor &>(
+            &invoke_dequant_silu_and_mul_quant),
+        "Dequant input, apply silu act and quant output");
+  ops.def("rotary_embedding", &rotary_embedding, py::arg("positions"),
+        py::arg("query"), py::arg("key"), py::arg("head_size"),
+        py::arg("cos_sin_cache"), py::arg("is_neox"),
+        py::arg("query_out") = torch::empty({}),
+        py::arg("key_out") = torch::empty({}), py::arg("use_dequant") = false,
+        py::arg("query_scale") = 1.0f, py::arg("key_scale") = 1.0f,
+        "Apply GPT-NeoX or GPT-J style rotary embedding to query and key");
+
 
   // Layernorm
-  ops.def(
-    "rms_norm",
-    &rms_norm,
-    "Apply Root Mean Square (RMS) Normalization to the input tensor.");
+  ops.def("rms_norm", &rms_norm, py::arg("out"), py::arg("input"),
+        py::arg("weight"), py::arg("epsilon"), py::arg("use_quant") = false,
+        "Apply Root Mean Square (RMS) Normalization to the input tensor.");
 
-  ops.def(
-    "fused_add_rms_norm",
-    &fused_add_rms_norm,
-    "In-place fused Add and RMS Normalization");
-
-  // Rotary embedding
-  ops.def(
-    "rotary_embedding",
-    &rotary_embedding,
-    "Apply GPT-NeoX or GPT-J style rotary embedding to query and key");
+  ops.def("invoke_dequant_add_residual_rms_norm_quant",
+        py::overload_cast<torch::Tensor &, torch::Tensor &, torch::Tensor &,
+                          torch::Tensor &, float, float>(
+            &invoke_dequant_add_residual_rms_norm_quant),
+        "Add the dequanted result and residual, then use RMS norm and quant output.");
+  ops.def("invoke_dequant_add_residual_rms_norm_quant",
+        py::overload_cast<torch::Tensor &, torch::Tensor &, torch::Tensor &,
+                          torch::Tensor &, torch::Tensor &, float, float>(
+            &invoke_dequant_add_residual_rms_norm_quant),
+        "Add the dequanted result and residual, then use RMS norm and quant output.");
+  ops.def("invoke_add_residual_rms_norm_quant",
+        &invoke_add_residual_rms_norm_quant,
+        "Add the result and residual, then use RMS norm and quant output.");
 
   // Quantization ops
   #ifndef USE_ROCM
