@@ -84,6 +84,32 @@ def initialize_model_parallel(
             _PIPELINE_GLOBAL_RANKS = ranks
 
 
+def ensure_model_parallel_initialized(
+        tensor_model_parallel_size: int,
+        pipeline_model_parallel_size: int,
+) -> None:
+    """Helper to initialize model parallel groups if they're
+    not already initialized, or ensure tensor-parallel and
+    pipeline-parallel sizes are equal to expected values
+    if the model parallel groups are intialized.
+    """
+    if not model_parallel_is_initialized():
+        initialize_model_parallel(
+            tensor_model_parallel_size,
+            pipeline_model_parallel_size)
+        return
+    
+    assert (
+        get_tensor_model_parallel_world_size() == tensor_model_parallel_size
+    ), ("tensor model parallel group already initialized, but of unexpected size: "
+        f"{get_tensor_model_parallel_world_size()=} vs. "
+        f"{tensor_model_parallel_size=}")
+    assert (get_pipeline_model_parallel_world_size() == pipeline_model_parallel_size
+            ), ("pipeline model parallel group already initialized, but of unexpected size: "
+                f"{get_pipeline_model_parallel_world_size()=} vs. "
+                f"{pipeline_model_parallel_size=}")
+
+
 def model_parallel_is_initialized():
     """Check if model and data parallel groups are initialized."""
     return (_TENSOR_MODEL_PARALLEL_GROUP is not None
