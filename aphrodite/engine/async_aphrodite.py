@@ -233,7 +233,7 @@ class _AsyncAphrodite(AphroditeEngine):
 
 
 class AsyncAphrodite:
-    """An asynchronous wrapper for APhroditeEngine.
+    """An asynchronous wrapper for AphroditeEngine.
 
     This class is used to wrap the AphroditeEngine class to make it
     asynchronous. It uses asyncio to create a background loop that
@@ -430,49 +430,6 @@ class AsyncAphrodite:
         Yields:
             The output `RequestOutput` objects from the LLMEngine for the
             request.
-
-        Details:
-            - If the engine is not running, start the background loop,
-              which iteratively invokes
-              :meth:`~aphrodite.engine.async_aphrodite.AsyncAphrodite.engine_step`
-              to process the waiting requests.
-            - Add the request to the engine's `RequestTracker`.
-              On the next background loop, this request will be sent to
-              the underlying engine.
-              Also, a corresponding `AsyncStream` will be created.
-            - Wait for the request outputs from `AsyncStream` and yield them.
-
-        Example:
-            >>> # Please refer to endpoints/openai/api_server.py for
-            >>> # the complete example.
-            >>>
-            >>> # initialize the engine and the example input
-            >>> engine = AsyncAphrodite.from_engine_args(engine_args)
-            >>> example_input = {
-            >>>     "prompt": "What is LLM?",
-            >>>     "stream": False, # assume the non-streaming case
-            >>>     "temperature": 0.0,
-            >>>     "request_id": 0,
-            >>> }
-            >>>
-            >>> # start the generation
-            >>> results_generator = engine.generate(
-            >>>    example_input["prompt"],
-            >>>    SamplingParams(temperature=example_input["temperature"]),
-            >>>    example_input["request_id"])
-            >>>
-            >>> # get the results
-            >>> final_output = None
-            >>> async for request_output in results_generator:
-            >>>     if await request.is_disconnected():
-            >>>         # Abort the request if the client disconnects.
-            >>>         await engine.abort(request_id)
-            >>>         # Return or raise an error
-            >>>         ...
-            >>>     final_output = request_output
-            >>>
-            >>> # Process and return the final output
-            >>> ...
         """
         # Preprocess the request.
         # This should not be used for logging, as it is monotonic time.

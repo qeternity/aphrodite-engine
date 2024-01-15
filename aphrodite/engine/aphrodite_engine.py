@@ -18,8 +18,7 @@ from aphrodite.common.sequence import (SamplerOutput, Sequence, SequenceGroup,
                            SequenceGroupOutput, SequenceOutput, SequenceStatus)
 from aphrodite.transformers_utils.tokenizer import (detokenize_incrementally,
                                                get_tokenizer)
-from aphrodite.common.utils import (
-    Counter, set_cuda_visible_devices, get_ip, get_open_port)
+from aphrodite.common.utils import Counter, set_cuda_visible_devices, get_ip, get_open_port
 
 if ray:
     from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
