@@ -264,6 +264,7 @@ class AphroditeEngine:
             block_size=self.cache_config.block_size,
             gpu_memory_utilization=self.cache_config.gpu_memory_utilization,
             cpu_swap_space=self.cache_config.swap_space_bytes,
+            cache_dtype=self.cache_config.cache_dtype,
         )
 
         # Since we use a shared centralized controller, we take the minimum
