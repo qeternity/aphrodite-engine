@@ -13,7 +13,7 @@ from torch.utils.cpp_extension import (
 
 ROOT_DIR = os.path.dirname(__file__)
 
-MAIN_CUDA_VERSION = "11.8"
+MAIN_CUDA_VERSION = "12.1"
 
 # Supported NVIDIA GPU architectures.
 NVIDIA_SUPPORTED_ARCHS = {
@@ -213,6 +213,7 @@ elif _is_hip():
 ext_modules = []
 
 aphrodite_extension_sources = [
+    "kernels/misc_kernels.cu",
     "kernels/cache_kernels.cu",
     "kernels/attention/attention_kernels.cu",
     "kernels/pos_encoding_kernels.cu",
@@ -236,7 +237,6 @@ aphrodite_extension = CUDAExtension(
     },
 )
 ext_modules.append(aphrodite_extension)
-
 
 def get_path(*filepath) -> str:
     return os.path.join(ROOT_DIR, *filepath)
